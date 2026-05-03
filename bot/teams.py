@@ -86,6 +86,14 @@ async def _navigate_to_meeting(page, meeting_link: str):
     cleaned_link = meeting_link.replace("\\=", "=").replace("%5C=", "=")
     parsed = urlparse(cleaned_link)
 
+    # Unwrap Microsoft SafeLinks (safelinks.protection.outlook.com?url=<actual url>).
+    if "safelinks.protection.outlook.com" in parsed.netloc:
+        params = parse_qs(parsed.query)
+        inner = params.get("url", [None])[0]
+        if inner:
+            cleaned_link = unquote(inner).replace("\\=", "=").replace("%5C=", "=")
+            parsed = urlparse(cleaned_link)
+
     if "dl/launcher" in parsed.path:
         params = parse_qs(parsed.query)
         inner = params.get("url", [None])[0]
