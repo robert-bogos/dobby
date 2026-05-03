@@ -1,0 +1,60 @@
+name: Auto-tag release on merge to main
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  tag-release:
+    # Only run if PR was actually merged (not just closed)
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to see existing tags
+
+      - name: Extract version from PR title
+        id: version
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "PR title: $TITLE"
+
+          # Match vX.Y.Z anywhere in the title
+          if [[ "$TITLE" =~ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VERSION="v${BASH_REMATCH[1]}"
+            echo "Found version: $VERSION"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "No version (vX.Y.Z) found in PR title — skipping"
+            echo "version=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check tag doesn't already exist
+        if: steps.version.outputs.version != ''
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists — failing"
+            exit 1
+          fi
+
+      - name: Create and push tag
+        if: steps.version.outputs.version != ''
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.version != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          generate_release_notes: true
