@@ -15,7 +15,7 @@ def main():
     parser.add_argument("--whisper-model", default=config.WHISPER_MODEL, help=f"Whisper model (default: {config.WHISPER_MODEL})")
     parser.add_argument("--ollama-model",  default=config.OLLAMA_MODEL,  help=f"Ollama model (default: {config.OLLAMA_MODEL})")
     parser.add_argument("--chat-message",  default="",                   help="Post this message in the meeting chat after joining")
-    parser.add_argument("--chat-delay",    type=int, default=20,         help="Delay in seconds before posting --chat-message (default: 20)")
+    parser.add_argument("--chat-delay",    type=int, default=180,        help="Delay in seconds before posting --chat-message (default: 180)")
     args = parser.parse_args()
     asyncio.run(run(args))
 
