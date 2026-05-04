@@ -89,20 +89,25 @@ async def create_account() -> None:
         await page.wait_for_selector('#BirthMonthDropdown', timeout=20000)
 
         await page.click('label[for="BirthMonthDropdown"]')
-        await page.wait_for_selector('[role="listbox"]', state="attached", timeout=5000)
+        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=5000)
         await page.wait_for_timeout(800)
-        await page.locator('[role="option"]').first.click(force=True)
+        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
+        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=5000)
+        await page.wait_for_timeout(400)
 
         await page.click('label[for="BirthDayDropdown"]')
-        await page.wait_for_selector('[role="listbox"]', state="attached", timeout=5000)
+        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=5000)
         await page.wait_for_timeout(800)
-        await page.locator('[role="option"]').first.click(force=True)
+        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
+        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=5000)
+        await page.wait_for_timeout(400)
 
         await page.fill('input[name="BirthYear"]', "1996")
         await page.click('button[data-testid="primaryButton"]')
+        await page.wait_for_load_state('networkidle', timeout=15000)
 
         # ── Page 6: name ──────────────────────────────────────────────────────
-        await page.wait_for_selector('#firstNameInput', timeout=20000)
+        await page.wait_for_selector('#firstNameInput', timeout=60000)
         await page.fill('#firstNameInput', 'Milo')
         await page.fill('#lastNameInput', 'Core')
         await page.click('button[data-testid="primaryButton"]')
