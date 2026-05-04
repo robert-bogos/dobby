@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""Automates Microsoft Outlook account creation and saves credentials to .env"""
+"""Automates Microsoft Outlook account creation and saves credentials to claude_desktop_config.json"""
 
 import asyncio
+import json
 import pathlib
 import random
-import re
 import string
+import subprocess
 
 from patchright.async_api import async_playwright
 
 HERE = pathlib.Path(__file__).parent
-ENV_FILE = HERE / ".env"
+MCP_CONFIG = (
+    pathlib.Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+)
 
 
 def _random_local() -> str:
@@ -30,23 +33,26 @@ def _random_password() -> str:
     return "".join(parts)
 
 
-def _save_env(email: str, password: str) -> None:
-    lines = ENV_FILE.read_text().splitlines() if ENV_FILE.exists() else []
-    replacements = {"TEAMS_BOT_EMAIL": email, "TEAMS_BOT_PASSWORD": password}
-    updated: set[str] = set()
-    new_lines = []
-    for line in lines:
-        m = re.match(r"^(TEAMS_BOT_EMAIL|TEAMS_BOT_PASSWORD)\s*=", line)
-        if m:
-            key = m.group(1)
-            new_lines.append(f"{key}={replacements[key]}")
-            updated.add(key)
-        else:
-            new_lines.append(line)
-    for key, val in replacements.items():
-        if key not in updated:
-            new_lines.append(f"{key}={val}")
-    ENV_FILE.write_text("\n".join(new_lines) + "\n")
+
+def _update_mcp_config(email: str, password: str) -> None:
+    try:
+        full_name = subprocess.check_output(["id", "-F"], text=True).strip()
+        first_name = full_name.split()[0] if full_name else ""
+    except Exception:
+        first_name = ""
+    display_name = f"{first_name}'s AI notetaker" if first_name else "AI notetaker"
+
+    env_vars = {
+        "TEAMS_BOT_EMAIL": email,
+        "TEAMS_BOT_PASSWORD": password,
+        "TEAMS_BOT_DISPLAY_NAME": display_name,
+        "FAKE_VIDEO_PATH": str(HERE / "utils" / "bot-feed.y4m"),
+    }
+
+    cfg = json.loads(MCP_CONFIG.read_text()) if MCP_CONFIG.exists() else {}
+    cfg.setdefault("mcpServers", {}).setdefault("dobby", {})["env"] = env_vars
+    MCP_CONFIG.write_text(json.dumps(cfg, indent=2) + "\n")
+    print(f"[setup] MCP config updated: {MCP_CONFIG}")
 
 
 async def create_account() -> None:
@@ -119,8 +125,8 @@ async def create_account() -> None:
         await ctx.close()
         await browser.close()
 
-    _save_env(email, password)
-    print(f"[setup] Done — credentials saved to {ENV_FILE}")
+    _update_mcp_config(email, password)
+    print(f"[setup] Done — credentials saved to {MCP_CONFIG}")
     print(f"[setup]   TEAMS_BOT_EMAIL={email}")
     print(f"[setup]   TEAMS_BOT_PASSWORD={password}")
 
