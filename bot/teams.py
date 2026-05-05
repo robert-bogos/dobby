@@ -8,7 +8,15 @@ from .browser import _fake_video_path, _launch_browser
 
 async def _login(page):
     print("🔑  Logging in...")
-    await page.goto("https://login.microsoftonline.com/")
+    for attempt in range(3):
+        try:
+            await page.goto("https://login.microsoftonline.com/")
+            break
+        except Exception as e:
+            if attempt == 2:
+                raise
+            print(f"    Login page load failed (attempt {attempt + 1}/3): {e}")
+            await page.wait_for_timeout(3000)
     await page.wait_for_load_state("networkidle")
 
     await page.fill('input[type="email"]', config.BOT_EMAIL)
