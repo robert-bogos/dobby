@@ -128,9 +128,14 @@ async def _send_chat_message(page, message: str) -> bool:
         await _screenshot(page, "no-composer")
         return False
 
-    # ── 4. Dismiss any modal overlays, then focus the composer ──────────────
-    overlay = await page.query_selector('.ui-dialog__overlay, [data-slot-name\\:rp\\:="root"]')
-    if overlay:
+    # ── 4. Dismiss any overlays/popups, then focus the composer ──────────────
+    for _ in range(3):
+        overlay = await page.query_selector(
+            '.ui-dialog__overlay, [data-slot-name\\:rp\\:="root"], '
+            '[aria-label*="permission" i], [aria-label*="camera" i]'
+        )
+        if not overlay:
+            break
         print("    Dialog overlay detected — dismissing with Escape.")
         await page.keyboard.press("Escape")
         await page.wait_for_timeout(500)
@@ -138,20 +143,20 @@ async def _send_chat_message(page, message: str) -> bool:
     try:
         await composer.click()
     except Exception:
-        # Overlay may still be present — force the click and focus via JS.
         try:
             await composer.click(force=True)
-            await composer.evaluate("el => el.focus()")
         except Exception as e:
             print(f"    Could not focus composer: {e}")
             return False
+
+    await composer.evaluate("el => el.focus()")
     await page.wait_for_timeout(300)
 
-    await page.keyboard.type(message, delay=20)
+    # Type directly into the element — avoids page-level focus issues with iframes.
+    await composer.press_sequentially(message, delay=20)
     await page.wait_for_timeout(500)
 
-    # Teams sends on Enter by default (Shift+Enter for newline).
-    await page.keyboard.press("Enter")
+    await composer.press("Enter")
     await page.wait_for_timeout(2000)
 
     if await _message_appears_in_chat(page, message):
