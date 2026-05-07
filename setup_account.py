@@ -111,8 +111,34 @@ async def create_account() -> None:
     print(f"[setup] Creating account: {email}")
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
-        ctx = await browser.new_context()
+        browser = await p.chromium.launch(
+            headless=False,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--no-default-browser-check",
+                "--window-size=1280,800",
+            ],
+        )
+        ctx = await browser.new_context(
+            viewport={"width": 1280, "height": 800},
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/131.0.0.0 Safari/537.36"
+            ),
+        )
+        await ctx.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            Object.defineProperty(navigator, 'plugins',   { get: () => [1, 2, 3, 4, 5] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            window.chrome = { runtime: {} };
+            const origQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (p) =>
+                p.name === 'notifications'
+                    ? Promise.resolve({ state: Notification.permission })
+                    : origQuery(p);
+        """)
         page = await ctx.new_page()
 
         # ── Page 1: Outlook marketing page ───────────────────────────────────
