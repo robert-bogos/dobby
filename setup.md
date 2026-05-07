@@ -32,7 +32,27 @@ Watch the output. Every line should show ✓. If the script exits asking the use
 
 ### Step 2 — Create the bot account
 
-Tell the user:
+First check if credentials are already configured:
+
+```bash
+python3 -c "
+import json, pathlib
+p = pathlib.Path.home() / 'Library/Application Support/Claude/claude_desktop_config.json'
+try:
+    cfg = json.loads(p.read_text())
+    env = cfg['mcpServers']['dobby']['env']
+    if env.get('TEAMS_BOT_EMAIL') and env.get('TEAMS_BOT_PASSWORD'):
+        print('SKIP')
+    else:
+        print('NEEDED')
+except Exception:
+    print('NEEDED')
+"
+```
+
+If the output is `SKIP`, credentials already exist — tell the user Step 2 is already done and move on to the final message below.
+
+If the output is `NEEDED`, tell the user:
 
 _"Now I'll open a browser and automatically create a Microsoft Outlook account for your bot. Microsoft should show a CAPTCHA that I can't solve — when that happens, please solve it in the browser window for me."_
 
