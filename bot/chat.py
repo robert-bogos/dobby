@@ -128,7 +128,7 @@ async def _send_chat_message(page, message: str) -> bool:
         await _screenshot(page, "no-composer")
         return False
 
-    # ── 4. Dismiss any modal overlays, then focus the composer ───────────────
+    # ── 4. Dismiss any modal overlays, then focus the composer ──────────────
     overlay = await page.query_selector('.ui-dialog__overlay, [data-slot-name\\:rp\\:="root"]')
     if overlay:
         print("    Dialog overlay detected — dismissing with Escape.")
