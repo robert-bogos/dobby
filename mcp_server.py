@@ -35,7 +35,7 @@ def _ensure_assets():
     """Download missing release assets in a background thread — never blocks startup."""
     def _download():
         for path, url in RELEASE_ASSETS.items():
-            if path.exists():
+            if path.exists() and path.stat().st_size >= 1_000_000:
                 continue
             print(f"[dobby] Downloading {path.name} in background...", file=sys.stderr, flush=True)
             try:
