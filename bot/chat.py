@@ -128,12 +128,23 @@ async def _send_chat_message(page, message: str) -> bool:
         await _screenshot(page, "no-composer")
         return False
 
-    # ── 4. Focus and type via the keyboard (more reliable than execCommand) ─
+    # ── 4. Dismiss any modal overlays, then focus the composer ───────────────
+    overlay = await page.query_selector('.ui-dialog__overlay, [data-slot-name\\:rp\\:="root"]')
+    if overlay:
+        print("    Dialog overlay detected — dismissing with Escape.")
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(500)
+
     try:
         await composer.click()
-    except Exception as e:
-        print(f"    Could not focus composer: {e}")
-        return False
+    except Exception:
+        # Overlay may still be present — force the click and focus via JS.
+        try:
+            await composer.click(force=True)
+            await composer.evaluate("el => el.focus()")
+        except Exception as e:
+            print(f"    Could not focus composer: {e}")
+            return False
     await page.wait_for_timeout(300)
 
     await page.keyboard.type(message, delay=20)
