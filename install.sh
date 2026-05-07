@@ -68,7 +68,6 @@ info "Python packages"
 import importlib.util, subprocess, sys
 
 required = {
-    'playwright':     'playwright==1.51.0',
     'patchright':     'patchright==1.59.1',
     'faster_whisper': 'faster-whisper==1.2.1',
     'ollama':         'ollama==0.6.1',
@@ -161,7 +160,7 @@ info "Verification"
 "$PY" - <<'PYEOF'
 import importlib.util
 failed = []
-for mod in ['playwright','patchright','faster_whisper','ollama','mcp','numpy','scipy','dotenv','httpx','anyio','click','yaml','cryptography']:
+for mod in ['patchright','faster_whisper','ollama','mcp','numpy','scipy','dotenv','httpx','anyio','click','yaml','cryptography']:
     if importlib.util.find_spec(mod):
         print(f"  ✓  {mod}")
     else:
