@@ -89,6 +89,17 @@ READ_DESCRIPTION = (
     "honestly — do NOT invent content."
 )
 
+LIST_LOGS_DESCRIPTION = (
+    "List all bot log files, newest first. Each entry shows the timestamp "
+    "and file size. Use this to find the right log before reading it."
+)
+
+READ_LOG_DESCRIPTION = (
+    "Read the full contents of a bot log file for debugging. "
+    "If no timestamp is given, returns the most recent log. "
+    "Timestamp prefix matching is supported (e.g. '2026-04-20' or '2026-04-20_19')."
+)
+
 TOOLS = [
     Tool(
         name="join_meeting",
@@ -140,6 +151,27 @@ TOOLS = [
         name="get_last_meeting_notes",
         description=GET_LAST_DESCRIPTION,
         inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="list_logs",
+        description=LIST_LOGS_DESCRIPTION,
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="read_log",
+        description=READ_LOG_DESCRIPTION,
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "timestamp": {
+                    "type": "string",
+                    "description": (
+                        "Log timestamp prefix in YYYY-MM-DD or YYYY-MM-DD_HH-MM format. "
+                        "If omitted, returns the most recent log."
+                    ),
+                },
+            },
+        },
     ),
     Tool(
         name="read_notes",

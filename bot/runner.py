@@ -14,7 +14,7 @@ from .transcribe import transcribe
 
 async def run(args):
     config.WHISPER_MODEL = args.whisper_model
-    config.OLLAMA_MODEL  = args.ollama_model
+    config.LLM_MODEL     = args.llm_model
 
     receiver = AudioReceiver()
     page, context, playwright = await join_teams_meeting(args.link, args.passcode, receiver)
