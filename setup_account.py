@@ -59,41 +59,45 @@ def _update_mcp_config(email: str, password: str) -> None:
 
 async def _select_dropdown(page, dropdown_id: str) -> None:
     """Open a Microsoft custom dropdown and select the first option, with fallbacks."""
-    label = f'label[for="{dropdown_id}"]'
+    label    = f'label[for="{dropdown_id}"]'
     dropdown = f'#{dropdown_id}'
 
-    # Attempt 1: click the label, wait for listbox, click first option via JS
-    try:
-        await page.click(label)
-        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=3000)
-        await page.wait_for_timeout(500)
-        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
-        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=3000)
-        await page.wait_for_timeout(300)
-        return
-    except Exception:
-        pass
+    async def _has_value() -> bool:
+        try:
+            text = await page.locator(dropdown).inner_text(timeout=1000)
+            return bool(text.strip())
+        except Exception:
+            return False
 
-    # Attempt 2: click the dropdown element itself instead of the label
-    try:
-        await page.click(dropdown)
-        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=3000)
-        await page.wait_for_timeout(500)
-        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
-        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=3000)
-        await page.wait_for_timeout(300)
-        return
-    except Exception:
-        pass
+    async def _open_and_pick(trigger: str) -> bool:
+        try:
+            await page.click(trigger)
+            await page.wait_for_selector('[role="listbox"]', state="visible", timeout=3000)
+            await page.wait_for_timeout(500)
+            await page.locator('[role="listbox"] [role="option"]').first.click()
+            await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=3000)
+            await page.wait_for_timeout(300)
+            return await _has_value()
+        except Exception:
+            return False
 
-    # Attempt 3: keyboard navigation — focus the dropdown, press ArrowDown then Enter
+    # Attempt 1: click the label
+    if await _open_and_pick(label):
+        return
+
+    # Attempt 2: click the dropdown element directly
+    if await _open_and_pick(dropdown):
+        return
+
+    # Attempt 3: keyboard navigation
     try:
         await page.focus(dropdown)
         await page.keyboard.press('ArrowDown')
         await page.wait_for_timeout(500)
         await page.keyboard.press('Enter')
         await page.wait_for_timeout(300)
-        return
+        if await _has_value():
+            return
     except Exception:
         pass
 
@@ -131,7 +135,9 @@ async def create_account() -> None:
         await page.click('button[data-testid="primaryButton"]')
 
         # ── Page 5: birthday ──────────────────────────────────────────────────
-        await page.wait_for_selector('#BirthMonthDropdown', timeout=20000)
+        await page.wait_for_selector('#BirthMonthDropdown', state="visible", timeout=20000)
+        await page.wait_for_load_state('networkidle', timeout=10000)
+        await page.wait_for_timeout(1000)
 
         await _select_dropdown(page, 'BirthMonthDropdown')
         await _select_dropdown(page, 'BirthDayDropdown')
