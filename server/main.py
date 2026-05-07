@@ -8,7 +8,9 @@ from .handlers import (
     handle_get_last_notes,
     handle_join,
     handle_leave,
+    handle_list_logs,
     handle_list_notes,
+    handle_read_log,
     handle_read_notes,
     handle_status,
 )
@@ -23,6 +25,8 @@ HANDLERS = {
                               ),
     "meeting_status":         lambda args: handle_status(),
     "leave_meeting":          lambda args: handle_leave(),
+    "list_logs":              lambda args: handle_list_logs(),
+    "read_log":               lambda args: handle_read_log(args.get("timestamp", "")),
     "list_saved_notes":       lambda args: handle_list_notes(args.get("limit", 10)),
     "get_last_meeting_notes": lambda args: handle_get_last_notes(),
     "read_notes":             lambda args: handle_read_notes(

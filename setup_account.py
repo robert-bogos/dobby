@@ -42,15 +42,17 @@ def _update_mcp_config(email: str, password: str) -> None:
         first_name = ""
     display_name = f"{first_name}'s AI notetaker" if first_name else "AI notetaker"
 
-    env_vars = {
-        "TEAMS_BOT_EMAIL": email,
-        "TEAMS_BOT_PASSWORD": password,
-        "TEAMS_BOT_DISPLAY_NAME": display_name,
-        "FAKE_VIDEO_PATH": str(HERE / "utils" / "bot-feed.y4m"),
-    }
-
     cfg = json.loads(MCP_CONFIG.read_text()) if MCP_CONFIG.exists() else {}
-    cfg.setdefault("mcpServers", {}).setdefault("dobby", {})["env"] = env_vars
+    cfg.setdefault("mcpServers", {})["dobby"] = {
+        "command": str(HERE / ".venv" / "bin" / "python"),
+        "args": [str(HERE / "mcp_server.py")],
+        "env": {
+            "TEAMS_BOT_EMAIL": email,
+            "TEAMS_BOT_PASSWORD": password,
+            "TEAMS_BOT_DISPLAY_NAME": display_name,
+            "FAKE_VIDEO_PATH": str(HERE / "utils" / "bot-feed.y4m"),
+        },
+    }
     MCP_CONFIG.write_text(json.dumps(cfg, indent=2) + "\n")
     print(f"[setup] MCP config updated: {MCP_CONFIG}")
 

@@ -32,10 +32,10 @@ def summarize(transcript: str) -> str:
         print("❌  ollama not installed. Run: pip install ollama")
         sys.exit(1)
 
-    print(f"\n🤖  Summarising with Ollama ({config.OLLAMA_MODEL})...")
+    print(f"\n🤖  Summarising with Ollama ({config.LLM_MODEL})...")
     try:
         response = ollama.chat(
-            model=config.OLLAMA_MODEL,
+            model=config.LLM_MODEL,
             messages=[{"role": "user", "content": SUMMARIZE_PROMPT.format(transcript=transcript)}],
         )
         notes = response["message"]["content"]

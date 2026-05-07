@@ -204,6 +204,45 @@ async def handle_list_notes(limit: int) -> list[TextContent]:
     return _text("\n".join(lines))
 
 
+async def handle_read_log(timestamp: str) -> list[TextContent]:
+    if not LOG_DIR.exists():
+        return _text("No bot logs found.")
+
+    if timestamp:
+        candidates = sorted(LOG_DIR.glob(f"{timestamp}*.log"), reverse=True)
+        if not candidates:
+            return _text(f"No log found matching timestamp '{timestamp}'.")
+        log_file = candidates[0]
+    else:
+        logs = sorted(LOG_DIR.glob("*.log"), reverse=True)
+        if not logs:
+            return _text("No bot logs found.")
+        log_file = logs[0]
+
+    try:
+        text = log_file.read_text()
+    except Exception as e:
+        return _text(f"Could not read log file: {e}")
+
+    return _text(f"═══ LOG ({log_file.name}) ═══\n\n{text}")
+
+
+async def handle_list_logs() -> list[TextContent]:
+    if not LOG_DIR.exists():
+        return _text("No bot logs found.")
+
+    logs = sorted(LOG_DIR.glob("*.log"), reverse=True)
+    if not logs:
+        return _text("No bot logs found.")
+
+    lines = [f"Found {len(logs)} log(s):\n"]
+    for lf in logs:
+        size = lf.stat().st_size
+        lines.append(f"• {lf.stem}  ({size} bytes)")
+
+    return _text("\n".join(lines))
+
+
 async def handle_read_notes(timestamp: str, include_transcript: bool) -> list[TextContent]:
     if not NOTES_DIR.exists():
         return _text("No meeting notes have been saved yet.")

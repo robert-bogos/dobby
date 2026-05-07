@@ -5,7 +5,7 @@ SAMPLE_RATE   = 16000
 CHANNELS      = 1
 CHUNK_SIZE    = 4096
 WHISPER_MODEL = "medium"
-OLLAMA_MODEL  = "llama3"
+LLM_MODEL  = "gemma4:e4b"
 OUTPUT_DIR    = str(pathlib.Path(__file__).parent.parent / "meeting-notes")
 
 BOT_EMAIL        = os.environ.get("TEAMS_BOT_EMAIL", "")
