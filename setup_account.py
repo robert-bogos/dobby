@@ -172,7 +172,7 @@ async def create_account() -> None:
         await page.click('button[data-testid="primaryButton"]')
         await page.wait_for_load_state('networkidle', timeout=15000)
 
-        # ── Page 6: name ──────────────────────────────────────────────────────
+        # ── Page 6: name ─────────────────────────────────────────────────────
         await page.wait_for_selector('#firstNameInput', timeout=60000)
         await page.fill('#firstNameInput', 'Milo')
         await page.fill('#lastNameInput', 'Core')
