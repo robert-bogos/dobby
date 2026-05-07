@@ -20,7 +20,7 @@ Dobby is a Microsoft Teams meeting notetaker bot. It joins meetings as a partici
 
 ## Instructions for Claude
 
-> Read this entire file, then execute every step in order without asking for confirmation. Only pause if a step fails or requires manual input (CAPTCHA).
+> Read this entire file, then execute every step in order without asking for confirmation. Only pause if a step fails. Before running any command that opens a browser window, always tell the user what is about to happen.
 
 ### Step 1 — Run the installer
 
