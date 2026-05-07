@@ -57,6 +57,49 @@ def _update_mcp_config(email: str, password: str) -> None:
     print(f"[setup] MCP config updated: {MCP_CONFIG}")
 
 
+async def _select_dropdown(page, dropdown_id: str) -> None:
+    """Open a Microsoft custom dropdown and select the first option, with fallbacks."""
+    label = f'label[for="{dropdown_id}"]'
+    dropdown = f'#{dropdown_id}'
+
+    # Attempt 1: click the label, wait for listbox, click first option via JS
+    try:
+        await page.click(label)
+        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=3000)
+        await page.wait_for_timeout(500)
+        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
+        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=3000)
+        await page.wait_for_timeout(300)
+        return
+    except Exception:
+        pass
+
+    # Attempt 2: click the dropdown element itself instead of the label
+    try:
+        await page.click(dropdown)
+        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=3000)
+        await page.wait_for_timeout(500)
+        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
+        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=3000)
+        await page.wait_for_timeout(300)
+        return
+    except Exception:
+        pass
+
+    # Attempt 3: keyboard navigation — focus the dropdown, press ArrowDown then Enter
+    try:
+        await page.focus(dropdown)
+        await page.keyboard.press('ArrowDown')
+        await page.wait_for_timeout(500)
+        await page.keyboard.press('Enter')
+        await page.wait_for_timeout(300)
+        return
+    except Exception:
+        pass
+
+    raise RuntimeError(f"Could not select a value from dropdown #{dropdown_id}")
+
+
 async def create_account() -> None:
     local = _random_local()
     email = f"{local}@outlook.com"
@@ -90,19 +133,8 @@ async def create_account() -> None:
         # ── Page 5: birthday ──────────────────────────────────────────────────
         await page.wait_for_selector('#BirthMonthDropdown', timeout=20000)
 
-        await page.click('label[for="BirthMonthDropdown"]')
-        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=5000)
-        await page.wait_for_timeout(800)
-        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
-        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=5000)
-        await page.wait_for_timeout(400)
-
-        await page.click('label[for="BirthDayDropdown"]')
-        await page.wait_for_selector('[role="listbox"]', state="visible", timeout=5000)
-        await page.wait_for_timeout(800)
-        await page.evaluate('document.querySelector(\'[role="listbox"] [role="option"]\').click()')
-        await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=5000)
-        await page.wait_for_timeout(400)
+        await _select_dropdown(page, 'BirthMonthDropdown')
+        await _select_dropdown(page, 'BirthDayDropdown')
 
         await page.fill('input[name="BirthYear"]', "1996")
         await page.click('button[data-testid="primaryButton"]')
