@@ -95,6 +95,12 @@ else:
     print("  ✓  all packages already installed")
 PYEOF
 
+# ── Clear Chromium caches (ensure clean install) ──────────────────────────────
+info "Clearing Chromium caches"
+rm -rf ~/Library/Caches/ms-playwright
+rm -rf ~/Library/Caches/ms-patchright
+ok "done"
+
 # ── Chromium (playwright) ─────────────────────────────────────────────────────
 info "Chromium (playwright)"
 "$PY" - <<'PYEOF'
