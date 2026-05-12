@@ -52,19 +52,15 @@ except Exception:
 
 If the output is `SKIP`, credentials already exist — tell the user Step 2 is already done and move on to the final message below.
 
-If the output is `NEEDED`, tell the user:
-
-_"I'll open an incognito Chrome window so you can create a free Outlook account for the bot. The script will suggest an email and password — you can use those or pick your own. Once the account is created, come back to this window and enter the credentials."_
+If the output is `NEEDED`, run:
 
 ```bash
-cd ~/dobby && ~/dobby/.venv/bin/python setup_account.py
+! cd ~/dobby && ~/dobby/.venv/bin/python setup_account.py
 ```
 
-The script will print suggested credentials, open Chrome in incognito, then wait for the user to type the email and password they used. Once entered, it saves them automatically.
+The script opens Chrome incognito, suggests credentials, and waits for the user to enter the email and password they used. When it finishes, tell the user:
 
-When it finishes, tell the user:
-
-_"All done. Please quit Claude Desktop and reopen it — that's required to load the new bot config. After that, you can say 'join this Teams meeting for me: [link]' and I'll handle the rest."_
+_"Quit Claude Desktop and reopen it, then you're ready."_
 
 ---
 

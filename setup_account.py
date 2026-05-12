@@ -60,32 +60,21 @@ def main() -> None:
     suggested_password = _random_password()
 
     print()
-    print("=" * 56)
-    print("  Bot account setup")
-    print("=" * 56)
+    print(f"  Suggested email:    {suggested_email}")
+    print(f"  Suggested password: {suggested_password}")
     print()
-    print("  Dobby needs a dedicated Microsoft Outlook account.")
-    print("  Please create a free one at outlook.com.")
-    print()
-    print("  Suggested credentials (feel free to use these):")
-    print(f"    Email:    {suggested_email}")
-    print(f"    Password: {suggested_password}")
-    print()
-    print("  Opening an incognito Chrome window to get you started...")
+    print("  Opening Chrome incognito — create the account, then come back here.")
     print()
 
     try:
         subprocess.Popen([
-            "open", "-a", "Google Chrome",
+            "open", "-na", "Google Chrome",
             "--args", "--incognito", SIGNUP_URL,
         ])
     except Exception as e:
         print(f"  (Could not open Chrome automatically: {e})")
         print(f"  Please open this URL in an incognito window: {SIGNUP_URL}")
 
-    print("  Once the account is created, come back here and enter")
-    print("  the credentials below.")
-    print()
 
     email = input("  Email you used: ").strip()
     password = input("  Password you used: ").strip()
