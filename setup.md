@@ -52,15 +52,19 @@ except Exception:
 
 If the output is `SKIP`, credentials already exist — tell the user Step 2 is already done and move on to the final message below.
 
-If the output is `NEEDED`, run:
+If the output is `NEEDED`, tell the user:
+
+_"Now I'll open a browser and automatically create a Microsoft Outlook account for your bot. Microsoft should show a CAPTCHA that I can't solve — when that happens, please solve it in the browser window for me."_
 
 ```bash
-! cd ~/dobby && ~/dobby/.venv/bin/python setup_account.py
+cd ~/dobby && ~/dobby/.venv/bin/python setup_account.py
 ```
 
-The script opens Chrome incognito, suggests credentials, and waits for the user to enter the email and password they used. When it finishes, tell the user:
+If the script prints `ACTION REQUIRED`, tell the user to press and hold the button in the browser window — the script continues automatically once the CAPTCHA clears.
 
-_"Quit Claude Desktop and reopen it, then you're ready."_
+When it finishes, tell the user:
+
+_"All done. Please quit Claude Desktop and reopen it — that's required to load the new bot config. After that, you can say 'join this Teams meeting for me: [link]' and I'll handle the rest."_
 
 ---
 

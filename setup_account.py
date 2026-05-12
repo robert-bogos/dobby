@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Saves bot credentials to claude_desktop_config.json"""
+"""Automates Microsoft Outlook account creation and saves credentials to claude_desktop_config.json"""
 
+import asyncio
 import json
 import pathlib
 import random
 import string
 import subprocess
 
+from patchright.async_api import async_playwright
+
 HERE = pathlib.Path(__file__).parent
 MCP_CONFIG = (
     pathlib.Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
 )
 
-SIGNUP_URL = "https://www.microsoft.com/en-us/microsoft-365/outlook/log-in"
+
 
 
 def _random_local() -> str:
@@ -30,6 +33,7 @@ def _random_password() -> str:
     )
     random.shuffle(parts)
     return "".join(parts)
+
 
 
 def _update_mcp_config(email: str, password: str) -> None:
@@ -55,40 +59,151 @@ def _update_mcp_config(email: str, password: str) -> None:
     print(f"[setup] MCP config updated: {MCP_CONFIG}")
 
 
-def main() -> None:
-    suggested_email = f"{_random_local()}@outlook.com"
-    suggested_password = _random_password()
+async def _select_dropdown(page, dropdown_id: str) -> None:
+    """Open a Microsoft custom dropdown and select the first option, with fallbacks."""
+    label    = f'label[for="{dropdown_id}"]'
+    dropdown = f'#{dropdown_id}'
 
-    print()
-    print(f"  Suggested email:    {suggested_email}")
-    print(f"  Suggested password: {suggested_password}")
-    print()
-    print("  Opening Chrome incognito — create the account, then come back here.")
-    print()
+    async def _has_value() -> bool:
+        try:
+            text = await page.locator(dropdown).inner_text(timeout=1000)
+            return bool(text.strip())
+        except Exception:
+            return False
 
-    try:
-        subprocess.Popen([
-            "open", "-na", "Google Chrome",
-            "--args", "--incognito", SIGNUP_URL,
-        ])
-    except Exception as e:
-        print(f"  (Could not open Chrome automatically: {e})")
-        print(f"  Please open this URL in an incognito window: {SIGNUP_URL}")
+    async def _open_and_pick(trigger: str) -> bool:
+        try:
+            await page.click(trigger)
+            await page.wait_for_selector('[role="listbox"]', state="visible", timeout=3000)
+            await page.wait_for_timeout(500)
+            await page.locator('[role="listbox"] [role="option"]').first.click()
+            await page.wait_for_selector('[role="listbox"]', state="hidden", timeout=3000)
+            await page.wait_for_timeout(300)
+            return await _has_value()
+        except Exception:
+            return False
 
-
-    email = input("  Email you used: ").strip()
-    password = input("  Password you used: ").strip()
-
-    if not email or not password:
-        print("[setup] No credentials entered — aborting.")
+    # Attempt 1: click the label
+    if await _open_and_pick(label):
         return
 
+    # Attempt 2: click the dropdown element directly
+    if await _open_and_pick(dropdown):
+        return
+
+    # Attempt 3: keyboard navigation
+    try:
+        await page.focus(dropdown)
+        await page.keyboard.press('ArrowDown')
+        await page.wait_for_timeout(500)
+        await page.keyboard.press('Enter')
+        await page.wait_for_timeout(300)
+        if await _has_value():
+            return
+    except Exception:
+        pass
+
+    raise RuntimeError(f"Could not select a value from dropdown #{dropdown_id}")
+
+
+async def create_account() -> None:
+    local = _random_local()
+    email = f"{local}@outlook.com"
+    password = _random_password()
+    print(f"[setup] Creating account: {email}")
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=False,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--no-default-browser-check",
+                "--window-size=1280,800",
+            ],
+        )
+        ctx = await browser.new_context(
+            viewport={"width": 1280, "height": 800},
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/131.0.0.0 Safari/537.36"
+            ),
+        )
+        await ctx.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            Object.defineProperty(navigator, 'plugins',   { get: () => [1, 2, 3, 4, 5] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            window.chrome = { runtime: {} };
+            const origQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (p) =>
+                p.name === 'notifications'
+                    ? Promise.resolve({ state: Notification.permission })
+                    : origQuery(p);
+        """)
+        page = await ctx.new_page()
+
+        # ── Page 1: Outlook marketing page ───────────────────────────────────
+        await page.goto("https://www.microsoft.com/en-us/microsoft-365/outlook/log-in")
+        await page.get_by_role("link", name="Sign in").first.click()
+
+        # ── Page 2: Microsoft login — click "Create one!" ────────────────────
+        await page.wait_for_selector('a#signup', timeout=20000)
+        await page.click('a#signup')
+
+        # ── Page 3: email entry ───────────────────────────────────────────────
+        # Domain dropdown already shows @outlook.com; fill only the local part
+        await page.wait_for_selector('input[name="email"]', timeout=20000)
+        await page.fill('input[name="email"]', local)
+        await page.click('button[data-testid="primaryButton"]')
+
+        # ── Page 4: password ──────────────────────────────────────────────────
+        await page.wait_for_selector('input[type="password"]', timeout=20000)
+        await page.fill('input[type="password"]', password)
+        await page.click('button[data-testid="primaryButton"]')
+
+        # ── Page 5: birthday ──────────────────────────────────────────────────
+        await page.wait_for_selector('#BirthMonthDropdown', state="visible", timeout=20000)
+        await page.wait_for_load_state('networkidle', timeout=10000)
+        await page.wait_for_timeout(1000)
+
+        await _select_dropdown(page, 'BirthMonthDropdown')
+        await _select_dropdown(page, 'BirthDayDropdown')
+
+        await page.fill('input[name="BirthYear"]', "1996")
+        await page.click('button[data-testid="primaryButton"]')
+        await page.wait_for_load_state('networkidle', timeout=15000)
+
+        # ── Page 6: name ─────────────────────────────────────────────────────
+        await page.wait_for_selector('#firstNameInput', timeout=60000)
+        await page.fill('#firstNameInput', 'Milo')
+        await page.fill('#lastNameInput', 'Core')
+        await page.click('button[data-testid="primaryButton"]')
+
+        # Microsoft shows a CAPTCHA here. Wait until the page leaves signup.live.com,
+        # which happens only after the CAPTCHA is solved and the account is created.
+        print("[setup] -------------------------------------------------------")
+        print("[setup] ACTION REQUIRED: solve the CAPTCHA in the browser window")
+        print("[setup] The script will save credentials automatically once done.")
+        print("[setup] -------------------------------------------------------")
+        # Poll until the page leaves signup.live.com (after CAPTCHA is solved).
+        # wait_for_function / eval is blocked by the page's CSP, so we poll instead.
+        deadline = asyncio.get_event_loop().time() + 300
+        while asyncio.get_event_loop().time() < deadline:
+            if "signup.live.com" not in page.url:
+                break
+            await asyncio.sleep(2)
+        else:
+            raise TimeoutError("Timed out waiting for CAPTCHA to be solved")
+        await ctx.close()
+        await browser.close()
+
     _update_mcp_config(email, password)
-    print()
-    print(f"[setup] Done — credentials saved.")
+    print(f"[setup] Done — credentials saved to {MCP_CONFIG}")
+
     print(f"[setup]   TEAMS_BOT_EMAIL={email}")
     print(f"[setup]   TEAMS_BOT_PASSWORD={password}")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(create_account())
