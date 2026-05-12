@@ -54,13 +54,13 @@ If the output is `SKIP`, credentials already exist — tell the user Step 2 is a
 
 If the output is `NEEDED`, tell the user:
 
-_"Now I'll open a browser and automatically create a Microsoft Outlook account for your bot. Microsoft should show a CAPTCHA that I can't solve — when that happens, please solve it in the browser window for me."_
+_"I'll open an incognito Chrome window so you can create a free Outlook account for the bot. The script will suggest an email and password — you can use those or pick your own. Once the account is created, come back to this window and enter the credentials."_
 
 ```bash
 cd ~/dobby && ~/dobby/.venv/bin/python setup_account.py
 ```
 
-If the script prints `ACTION REQUIRED`, tell the user to press and hold the button in the browser window — the script continues automatically once the CAPTCHA clears.
+The script will print suggested credentials, open Chrome in incognito, then wait for the user to type the email and password they used. Once entered, it saves them automatically.
 
 When it finishes, tell the user:
 
